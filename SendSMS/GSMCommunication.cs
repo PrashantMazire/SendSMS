@@ -84,12 +84,58 @@ namespace SendSMS
                 port.Open();
                 port.DtrEnable = true;
                 port.RtsEnable = true;
-
-                return port;
+                if (checkModemConnected(port))
+                    return port;
+                else
+                    return null;
             }
             catch { return null; }
         }
 
+        private bool checkModemConnected(SerialPort serialPort)
+        {
+            try
+            {
+                if ((serialPort == null) || !serialPort.IsOpen)
+                    return false;
+
+                // Commands for modem checking
+                string[] modemCommands = new string[] { "AT",       // Check connected modem. After 'AT' command some modems autobaud their speed.
+                                            "ATQ0" };   // Switch on confirmations
+                serialPort.DtrEnable = true;    // Set Data Terminal Ready (DTR) signal 
+                serialPort.RtsEnable = true;    // Set Request to Send (RTS) signal
+
+                string answer = "";
+                bool retOk = false;
+
+                foreach (string command in modemCommands)
+                {
+                    serialPort.Write(command + serialPort.NewLine);
+                    retOk = false;
+                    answer = "";
+                    int timeout = (command == "AT") ? 10 : 20;
+
+                    // Waiting for response 1-2 sec
+                    for (int i = 0; i < timeout; i++)
+                    {
+                        Thread.Sleep(100);
+                        answer += serialPort.ReadExisting();
+                        if (answer.IndexOf("OK") >= 0)
+                        {
+                            retOk = true;
+                            break;
+                        }
+                    }
+                }
+                // If got responses, we found a modem
+                if (retOk)
+                    return true;
+
+                return false;
+            }
+            catch { return false; }
+        }
+        
         //Close Port
         public void ClosePort(SerialPort port)
         {
@@ -140,26 +186,13 @@ namespace SendSMS
             try
             {
                 string buffer = string.Empty;
-                int retryCount = 5; //try only for 5 times
+                int retryCount = 3;
                 do
                 {
-                    retryCount--;
-                    //PPM
-                    //if (receiveNow.WaitOne(timeout, false))
-                    {
-                        string t = port.ReadExisting();
-                        buffer += t;
-                    }
-                    //PPM
-                    //else
-                    //{
-                    //    if (buffer.Length > 0)
-                    //        throw new ApplicationException("Response received is incomplete.");
-                    //    else
-                    //        throw new ApplicationException("No data received from phone.");
-                    //}
+                    string t = port.ReadExisting();
+                    buffer += t;
                 }
-                while ((!buffer.EndsWith("\r\nOK\r\n") && !buffer.EndsWith("\r\n> ") && !buffer.EndsWith("\r\nERROR\r\n")) || retryCount > 0);
+                while ((!buffer.EndsWith("\r\nOK\r\n") && !buffer.EndsWith("\r\n> ") && !buffer.EndsWith("\r\nERROR\r\n")));
                 return buffer;
             }
             catch { return ""; }
