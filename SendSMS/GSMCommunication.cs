@@ -7,6 +7,7 @@ using System.Text;
 using System.IO.Ports;
 using System.Threading;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace SendSMS
 {
@@ -318,6 +319,7 @@ namespace SendSMS
                 {
                     isSend = false;
                 }
+                AppendLogFile("SendMsg " + isSend.ToString(), PhoneNo.ToString() + "-" + Message);
                 return isSend;
             }
             catch (Exception ex)
@@ -354,6 +356,8 @@ namespace SendSMS
                     recievedData = "Following error occured while sending the message" + recievedError;
                     isSend = false;
                 }
+                AppendLogFile("SendMsg1 " + isSend.ToString(), PhoneNo.ToString() + "-" + Message);
+
                 return isSend;
             }
             catch (Exception ex)
@@ -369,7 +373,31 @@ namespace SendSMS
                     //port = null;
                 }
             }
-        }     
+        }    
+        
+        public void AppendLogFile(string method, string msg)
+        {
+            try
+            {
+                string LOG_PATH = "log.txt";
+                if (File.Exists(LOG_PATH))
+                {
+                    var logFile = File.ReadAllLines(LOG_PATH);
+                    var logList = new List<string>(logFile);
+                    logList.Add(method + " \t:\t " + DateTime.Now.ToString(" MM/dd/yyyy HH:mm:ss") + " \t:\t " + msg);
+                    if (logList.Count > 1000)
+                        logList.RemoveAt(0);
+                    File.WriteAllLines(LOG_PATH, logList);
+                }
+                else
+                {
+                    var logList = new List<string>();
+                    logList.Add(method + "\t:\t" + DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss") + "\t:\t" + msg);
+                    File.WriteAllLines(LOG_PATH, logList);
+                }
+            }
+            catch { }
+        }
         static void DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             if (e.EventType == SerialData.Chars)

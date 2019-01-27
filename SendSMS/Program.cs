@@ -98,9 +98,12 @@ namespace SendSMS
                         message += args[i] + " ";
                     }
                     message.TrimEnd();
-
+                    gSMCommunication.AppendLogFile("Thread == ", args[1] + " " + message);
                     SerialPort serialPort = gSMCommunication.OpenPort(args[0], 9600, 8, 300, 300);
-                    if (serialPort != null) gSMCommunication.sendMsg(serialPort, args[1], message);
+                    if (serialPort != null)
+                    {
+                        gSMCommunication.sendMsg(serialPort, args[1], message);
+                    }
                     gSMCommunication.ClosePort(serialPort);
                     return;
                     /* critical code */
